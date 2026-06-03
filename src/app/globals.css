@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .bg-dashboard-grid {
+    background-color: #fafafa;
+    background-image:
+      linear-gradient(to right, rgb(228 228 231 / 0.55) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(228 228 231 / 0.55) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .dark-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .dark-scrollbar::-webkit-scrollbar-thumb {
+    background: #d4d4d8;
+    border-radius: 3px;
+  }
+}
