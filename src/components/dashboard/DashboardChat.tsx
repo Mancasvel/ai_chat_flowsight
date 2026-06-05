@@ -1,21 +1,19 @@
 'use client'
 
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import { Paperclip, SendHorizonal, Sparkles } from 'lucide-react'
+import ChatMessageContent from '@/components/dashboard/ChatMessageContent'
 import { Avatar } from '@/components/ui'
 import type { ProactiveInsight } from '@/lib/buildProactiveInsights'
 import { DEMO_USER } from '@/lib/mock/demoData'
+import { getDemoConversation, type DemoChatMessage } from '@/lib/mock/demoConversation'
 import { mockCoachReply, MOCK_USAGE } from '@/lib/mock/mockCoach'
 import { useDemoTeam } from '@/context/DemoTeamContext'
 
 const MAX_CHARS = 500
 
-type ChatMessage = {
-  id: string
-  role: 'assistant' | 'user'
-  content: string
-}
+type ChatMessage = DemoChatMessage
 
 type Props = {
   insights: ProactiveInsight[]
@@ -23,10 +21,18 @@ type Props = {
 
 export default function DashboardChat({ insights }: Props) {
   const { activeTeam } = useDemoTeam()
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [messages, setMessages] = useState<ChatMessage[]>(() => getDemoConversation(activeTeam.id))
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setMessages(getDemoConversation(activeTeam.id))
+  }, [activeTeam.id])
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
+  }, [activeTeam.id])
 
   const quickPrompts = useMemo(
     () => [
@@ -73,7 +79,7 @@ export default function DashboardChat({ insights }: Props) {
       </p>
 
       {hasConversation && (
-        <div ref={scrollRef} className="mb-6 max-h-[55vh] space-y-5 overflow-y-auto dark-scrollbar">
+        <div ref={scrollRef} className="mb-6 max-h-[min(55vh,640px)] space-y-5 overflow-y-auto dark-scrollbar">
           {messages.map((msg) => (
             <div
               key={msg.id}
@@ -91,7 +97,11 @@ export default function DashboardChat({ insights }: Props) {
                   msg.role === 'user' ? 'bg-zinc-900 text-white' : 'bg-zinc-50 text-zinc-700'
                 }`}
               >
-                {msg.content}
+                {msg.role === 'assistant' ? (
+                  <ChatMessageContent content={msg.content} />
+                ) : (
+                  msg.content
+                )}
               </div>
             </div>
           ))}
