@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation'
 import { FileBarChart, Settings, Menu, X, ChevronsUpDown } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Avatar } from '@/components/ui'
-import { DEMO_USER } from '@/lib/mock/demoData'
 import { useDemoTeam } from '@/context/DemoTeamContext'
 
 const menuItems = [
@@ -119,10 +118,10 @@ function DrawerContent({
 
       <div className="border-t border-zinc-100 px-5 py-4">
         <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-          <Avatar name={DEMO_USER.displayName} size="sm" />
+          <Avatar size="sm" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-zinc-800">{DEMO_USER.displayName}</p>
-            <p className="text-[11px] text-zinc-400">Project Manager · Demo</p>
+            <p className="truncate text-sm font-medium text-zinc-800">Project Manager</p>
+            <p className="text-[11px] text-zinc-400">Demo</p>
           </div>
         </div>
       </div>

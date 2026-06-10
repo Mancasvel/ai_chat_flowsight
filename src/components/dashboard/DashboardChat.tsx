@@ -2,36 +2,28 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
-import { Paperclip, SendHorizonal, Sparkles } from 'lucide-react'
+import { Paperclip, SendHorizonal, Sparkles, User } from 'lucide-react'
 import ChatMessageContent from '@/components/dashboard/ChatMessageContent'
-import { Avatar } from '@/components/ui'
-import type { ProactiveInsight } from '@/lib/buildProactiveInsights'
-import { DEMO_USER } from '@/lib/mock/demoData'
-import { getDemoConversation, type DemoChatMessage } from '@/lib/mock/demoConversation'
-import { mockCoachReply, MOCK_USAGE } from '@/lib/mock/mockCoach'
+import { MOCK_USAGE } from '@/lib/mock/mockCoach'
 import { useDemoTeam } from '@/context/DemoTeamContext'
 
 const MAX_CHARS = 500
 
-type ChatMessage = DemoChatMessage
-
-type Props = {
-  insights: ProactiveInsight[]
+type ChatMessage = {
+  id: string
+  role: 'assistant' | 'user'
+  content: string
 }
 
-export default function DashboardChat({ insights }: Props) {
+export default function DashboardChat() {
   const { activeTeam } = useDemoTeam()
-  const [messages, setMessages] = useState<ChatMessage[]>(() => getDemoConversation(activeTeam.id))
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    setMessages(getDemoConversation(activeTeam.id))
-  }, [activeTeam.id])
-
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
+    setMessages([])
   }, [activeTeam.id])
 
   const quickPrompts = useMemo(
@@ -58,15 +50,43 @@ export default function DashboardChat({ insights }: Props) {
       setSending(true)
       setInput('')
       const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: 'user', content: trimmed }
+      const history = messages.map(({ role, content }) => ({ role, content }))
       setMessages((prev) => [...prev, userMsg])
       scrollToBottom()
 
-      const reply = await mockCoachReply(trimmed, activeTeam, insights)
-      setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: reply }])
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: trimmed,
+            teamId: activeTeam.id,
+            history,
+          }),
+        })
+
+        const data = (await res.json()) as { reply?: string; error?: string }
+        const reply =
+          res.ok && data.reply
+            ? data.reply
+            : data.error ?? 'Could not reach FlowSight coach. Check OPENROUTER_API_KEY in .env.local.'
+
+        setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: reply }])
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `a-${Date.now()}`,
+            role: 'assistant',
+            content: 'Network error — could not reach the FlowSight coach. Try again in a moment.',
+          },
+        ])
+      }
+
       setSending(false)
       scrollToBottom()
     },
-    [activeTeam, insights, scrollToBottom, sending]
+    [activeTeam.id, messages, scrollToBottom, sending]
   )
 
   const hasConversation = messages.length > 0
@@ -75,7 +95,7 @@ export default function DashboardChat({ insights }: Props) {
   return (
     <div className="flex w-full flex-col font-sans">
       <p className="mb-3 text-center text-[11px] tabular-nums text-zinc-400">
-        Coach: {usage.used}/{usage.limit} prompts (demo)
+        Coach: {usage.used}/{usage.limit} prompts · powered by owl-alpha
       </p>
 
       {hasConversation && (
@@ -90,7 +110,9 @@ export default function DashboardChat({ insights }: Props) {
                   <Image src="/flowsight_sinfondo.png" alt="FlowSight" width={16} height={16} />
                 </div>
               ) : (
-                <Avatar name={DEMO_USER.displayName} size="sm" className="shrink-0" />
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-zinc-500">
+                  <User className="h-3.5 w-3.5" strokeWidth={1.75} />
+                </div>
               )}
               <div
                 className={`max-w-[85%] rounded-xl px-4 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap ${
@@ -134,10 +156,10 @@ export default function DashboardChat({ insights }: Props) {
             className="mb-8"
           />
           <h1 className="text-[22px] font-semibold tracking-tight text-zinc-900">
-            What&apos;s next for your team?
+            Ask your team
           </h1>
           <p className="mt-1.5 max-w-sm text-[13px] text-zinc-400">
-            Cognitive health and focus signals, summarized for you.
+            Flow, focus, meetings, sprint delivery — ask anything about your team.
           </p>
         </div>
       )}
@@ -158,7 +180,7 @@ export default function DashboardChat({ insights }: Props) {
           value={input}
           maxLength={MAX_CHARS}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about focus, activity, meetings or planning…"
+          placeholder="Ask your team anything…"
           className="w-full resize-none bg-transparent px-5 pt-4 pb-14 text-[14px] text-zinc-800 placeholder:text-zinc-400 focus:outline-none"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {

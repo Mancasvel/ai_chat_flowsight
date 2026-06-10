@@ -183,7 +183,6 @@ const designSquad: DemoTeam = {
 }
 
 export const DEMO_USER = {
-  displayName: 'Jordan Lee',
   avatarUrl: null as string | null,
   role: 'pm' as const,
 }
