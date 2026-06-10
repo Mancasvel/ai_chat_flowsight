@@ -1,11 +1,16 @@
 import { OpenRouter } from '@openrouter/sdk'
-import { loadTeamContext } from '@/lib/coach/loadTeamContext'
+import { loadCoachContext, type CoachMode } from '@/lib/coach/loadCoachContext'
 
 const MODEL = 'openrouter/owl-alpha'
 
 export type CoachMessage = {
   role: 'user' | 'assistant'
   content: string
+}
+
+export type CoachRequestOptions = {
+  mode: CoachMode
+  teamId?: string
 }
 
 function teamFocusHint(teamId: string): string {
@@ -15,9 +20,16 @@ function teamFocusHint(teamId: string): string {
   return 'The user is currently viewing the Product Engineering team in the dashboard. Prioritize Product Engineering data unless they ask about Design Squad.'
 }
 
+function buildSystemPrompt({ mode, teamId = 'team-product' }: CoachRequestOptions): string {
+  if (mode === 'individual-pro') {
+    return loadCoachContext('individual-pro')
+  }
+  return `${loadCoachContext('mock-team')}\n\nACTIVE VIEW: ${teamFocusHint(teamId)}`
+}
+
 export async function askFlowSightCoach(
   userMessage: string,
-  teamId: string,
+  options: CoachRequestOptions,
   history: CoachMessage[] = []
 ): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY
@@ -30,7 +42,7 @@ export async function askFlowSightCoach(
     appTitle: 'FlowSight Coach',
   })
 
-  const systemPrompt = `${loadTeamContext()}\n\nACTIVE VIEW: ${teamFocusHint(teamId)}`
+  const systemPrompt = buildSystemPrompt(options)
 
   const response = await openrouter.chat.send({
     chatRequest: {

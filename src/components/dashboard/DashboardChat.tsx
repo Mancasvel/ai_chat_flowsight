@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import { Paperclip, SendHorizonal, Sparkles, User } from 'lucide-react'
 import ChatMessageContent from '@/components/dashboard/ChatMessageContent'
+import CoachModeSelector from '@/components/dashboard/CoachModeSelector'
 import { MOCK_USAGE } from '@/lib/mock/mockCoach'
+import { useCoachMode } from '@/context/CoachModeContext'
 import { useDemoTeam } from '@/context/DemoTeamContext'
 
 const MAX_CHARS = 500
@@ -16,6 +18,7 @@ type ChatMessage = {
 }
 
 export default function DashboardChat() {
+  const { mode } = useCoachMode()
   const { activeTeam } = useDemoTeam()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -24,16 +27,26 @@ export default function DashboardChat() {
 
   useEffect(() => {
     setMessages([])
-  }, [activeTeam.id])
+  }, [activeTeam.id, mode])
+
+  const isIndividual = mode === 'individual-pro'
 
   const quickPrompts = useMemo(
-    () => [
-      "What's next for my team?",
-      "Who's in deep work right now?",
-      'How are meetings affecting focus?',
-      'Anyone at burnout risk?',
-    ],
-    []
+    () =>
+      isIndividual
+        ? [
+            "How's my focus today?",
+            "What's blocking my deep work?",
+            'How are my meetings affecting flow?',
+            'What should I tackle next?',
+          ]
+        : [
+            "What's next for my team?",
+            "Who's in deep work right now?",
+            'How are meetings affecting focus?',
+            'Anyone at burnout risk?',
+          ],
+    [isIndividual]
   )
 
   const scrollToBottom = useCallback(() => {
@@ -60,6 +73,7 @@ export default function DashboardChat() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message: trimmed,
+            mode,
             teamId: activeTeam.id,
             history,
           }),
@@ -86,7 +100,7 @@ export default function DashboardChat() {
       setSending(false)
       scrollToBottom()
     },
-    [activeTeam.id, messages, scrollToBottom, sending]
+    [activeTeam.id, mode, messages, scrollToBottom, sending]
   )
 
   const hasConversation = messages.length > 0
@@ -94,6 +108,8 @@ export default function DashboardChat() {
 
   return (
     <div className="flex w-full flex-col font-sans">
+      <CoachModeSelector />
+
       <p className="mb-3 text-center text-[11px] tabular-nums text-zinc-400">
         Coach: {usage.used}/{usage.limit} prompts · powered by owl-alpha
       </p>
@@ -156,10 +172,12 @@ export default function DashboardChat() {
             className="mb-8"
           />
           <h1 className="text-[22px] font-semibold tracking-tight text-zinc-900">
-            Ask your team
+            {isIndividual ? 'Your workflows' : 'Ask your team'}
           </h1>
           <p className="mt-1.5 max-w-sm text-[13px] text-zinc-400">
-            Flow, focus, meetings, sprint delivery — ask anything about your team.
+            {isIndividual
+              ? 'Personal focus, meetings, and delivery.'
+              : 'Sample team data,   flow, focus, meetings, and sprint delivery.'}
           </p>
         </div>
       )}
@@ -180,7 +198,7 @@ export default function DashboardChat() {
           value={input}
           maxLength={MAX_CHARS}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask your team anything…"
+          placeholder={isIndividual ? 'Ask about your workflows…' : 'Ask the mock team anything…'}
           className="w-full resize-none bg-transparent px-5 pt-4 pb-14 text-[14px] text-zinc-800 placeholder:text-zinc-400 focus:outline-none"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {

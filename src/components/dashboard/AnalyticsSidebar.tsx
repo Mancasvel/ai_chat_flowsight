@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { FileBarChart, Settings, Menu, X, ChevronsUpDown } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Avatar } from '@/components/ui'
+import { useCoachMode } from '@/context/CoachModeContext'
 import { useDemoTeam } from '@/context/DemoTeamContext'
 
 const menuItems = [
@@ -74,6 +75,9 @@ function DrawerContent({
   pathname: string
   onNavigate?: () => void
 }) {
+  const { mode } = useCoachMode()
+  const isIndividual = mode === 'individual-pro'
+
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-zinc-100/80 px-5 py-5">
@@ -87,7 +91,14 @@ function DrawerContent({
       </div>
 
       <div className="flex-1 space-y-8 overflow-y-auto px-5 py-6">
-        <TeamSelector />
+        {!isIndividual && <TeamSelector />}
+        {isIndividual && (
+          <div className="rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-2.5">
+            <p className="text-[11px] font-medium tracking-wide text-indigo-600">Mode</p>
+            <p className="mt-0.5 text-sm font-medium text-indigo-900">Individual Pro</p>
+            <p className="mt-0.5 text-[11px] text-indigo-700/80">Your personal workflows</p>
+          </div>
+        )}
 
         <nav>
           <p className="mb-3 px-1 text-[11px] font-medium tracking-wide text-zinc-400">Menu</p>
@@ -147,7 +158,7 @@ export default function AnalyticsSidebar() {
   return (
     <>
       <header
-        className="fixed top-[41px] left-0 right-0 z-40 flex h-14 items-center gap-3 border-b border-zinc-200/60
+        className="fixed top-[var(--banner-h)] left-0 right-0 z-40 flex h-14 items-center gap-3 border-b border-zinc-200/60
           bg-white/75 px-4 backdrop-blur-md sm:px-6"
       >
         <button
